@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Precious Lang</title>
+        <style>
+            #output {
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin: 10px 0;
+                min-height: 200px;
+                font-family: monospace;
+                background-color: #f5f5f5;
+                overflow-y: auto;
+            }
+            #input {
+                width: 100%;
+                padding: 5px;
+                margin-bottom: 10px;
+                font-family: monospace;
+            }
+            .input {
+                color: #0066cc;
+                margin-top: 5px;
+            }
+            .token {
+                color: #009900;
+                margin-left: 20px;
+                font-family: monospace;
+            }
+            .error {
+                color: #cc0000;
+                margin-left: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Precious Lang</h1>
+        <div id="output"></div>
+        <input type="text" id="input" placeholder="Enter your code here" />
+        <script src="wasm_exec.js"></script>
+        <script>
+            // Load WebAssembly
+            const go = new Go();
+            WebAssembly.instantiateStreaming(
+                fetch("main.wasm"),
+                go.importObject,
+            )
+                .then((result) => {
+                    go.run(result.instance);
+
+                    const input = document.getElementById("input");
+                    const output = document.getElementById("output");
+
+                    input.addEventListener("keypress", (e) => {
+                        if (e.key === "Enter") {
+                            const code = input.value;
+                            try {
+                                const tokens = evaluateLang(code);
+
+                                // Show the input
+                                output.innerHTML += `<div class="input">>> ${code}</div>`;
+
+                                // Show the tokens
+                                if (tokens && tokens.length > 0) {
+                                    tokens.forEach((token) => {
+                                        output.innerHTML += `<div class="token">${token.type}: '${token.literal}'</div>`;
+                                    });
+                                } else {
+                                    output.innerHTML += `<div class="token">No tokens generated</div>`;
+                                }
+                            } catch (error) {
+                                output.innerHTML += `<div class="error">Error: ${error}</div>`;
+                            }
+
+                            input.value = "";
+                            output.scrollTop = output.scrollHeight;
+                        }
+                    });
+                })
+                .catch((err) => {
+                    console.error("Failed to load WASM:", err);
+                    document.getElementById("output").innerHTML =
+                        `<div class="error">Failed to load WASM: ${err.message}</div>`;
+                });
+        </script>
+    </body>
+</html>
